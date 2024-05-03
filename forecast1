@@ -1,0 +1,38 @@
+library(stargazer)
+library("readxl")
+library(dplyr)
+library(tibble)
+library(ggplot2)
+library(lubridate)
+library(tseries)
+library(forecast)
+
+# Historical consumption only
+energy1.consumption <- read_excel("Forecasting Competition - Data.xlsx", sheet = "Demand")
+
+energy1.consumption[2] <- log(energy1.consumption[2])
+plot(energy1.consumption, type = "l")
+
+
+colnames(energy1.consumption)[1] <- "date"
+colnames(energy1.consumption)[2] <- "energy"
+
+energy1.consumption["energy"] <- log(energy1.consumption["energy"])
+
+energy.ts <- ts(energy1.consumption[, 2], frequency = 365)
+
+energy.ts[,1] %>% stl(s.window = "periodic") %>% plot
+
+ndiffs(energy.ts)
+nsdiffs(energy.ts)
+
+auto.arima(energy.ts, d = 1, D = 1)
+model <- Arima(energy.ts, order = c(5, 1, 2), season = c(0, 1, 0), include.drift = FALSE)
+forecast <- forecast(model, level = 95, h = 2)
+autoplot(forecast)
+
+mean <- forecast[["mean"]][2]
+sd <- (forecast[["mean"]][2] - forecast[["lower"]][2]) / 2
+
+mean
+sd
