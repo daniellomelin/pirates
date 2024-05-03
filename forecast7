@@ -1,0 +1,21 @@
+library(stargazer)
+library("readxl")
+library(dplyr)
+library(tibble)
+library(ggplot2)
+library(lubridate)
+library(tseries)
+library(forecast)
+
+data <- cbind(demand, sunshine, average)
+
+final_data <- ts(data[, 2], frequency = 365)
+only_exo <- data[, 3:8]
+
+futurematrix <- matrix(c(0, 60, 0, 180, 0, 
+                         120, 10.5, 11.125, 10.625, 10.75), nrow = 2)
+
+# Using all 6 variables, except Leeds temperature because in lm it was stated as irrelevant
+model <- Arima(final_data, order = c(5, 1, 2), seasonal = c(0,1,0), xreg = as.matrix(only_exo[,c(1,2,3,4,5)]), include.drift = FALSE)
+f <- forecast(model, h=2, level = 0.68, xreg = futurematrix)
+f
