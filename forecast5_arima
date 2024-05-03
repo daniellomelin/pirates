@@ -1,0 +1,298 @@
+library(stargazer)
+library("readxl")
+library(dplyr)
+library(tibble)
+library(ggplot2)
+library(lubridate)
+library(tseries)
+library(forecast)
+
+setwd("/Users/daniellomelin/Desktop/Imperial College/Clases/Term 2/Energy Analytics/Forecasting competition/Forecast 4")
+
+
+######  SUNSHINE  #####################################
+data1 <- cbind(demand, sunshine)
+
+final_data1 <- ts(data1[, 2], frequency = 365)
+only_exo1 <- data1[, 3:5]
+
+final_data.train1 <- window(final_data1, end = c(4,60))
+final_data.valid1 <- window(final_data1, start = c(4,61))
+only_exo.train1 <- only_exo1[1 : length(final_data.train1), ]
+only_exo.valid1 <- only_exo1[(length(final_data.train1) + 1) : (length(final_data.train1) + length(final_data.valid1)),]
+
+auto.arima(final_data.train1, xreg = as.matrix(only_exo.train1), seasonal = TRUE, trace = TRUE)
+# Best model:  Regression with ARIMA(5,1,2)(0,1,0)[365]
+
+auto.arima(final_data.train1, xreg = as.matrix(only_exo.train1[,1]), seasonal = TRUE, trace = TRUE) #LND
+# Best model:  Regression with ARIMA(5,1,2)(0,1,0)[365]
+
+auto.arima(final_data.train1, xreg = as.matrix(only_exo.train1[,2]), seasonal = TRUE, trace = TRUE) #BRI
+# Best model:  Regression with ARIMA(5,1,2)(0,1,0)[365]
+
+auto.arima(final_data.train1, xreg = as.matrix(only_exo.train1[,3]), seasonal = TRUE, trace = TRUE) #LEE
+# Best model:  Regression with ARIMA(5,1,2)(0,1,0)[365]
+
+# THIS ALL IS TOO SLOW TO RUN, WE WILL TAKE THE lm RESULTS INSTEAD (jump to average temp section)
+#m_sunall <- Arima(final_data.train1, order = c(5, 1, 2), seasonal = c(0,1,0), xreg = as.matrix(only_exo.train1), include.drift = FALSE)
+#m_sunlon <- Arima(final_data.train1, order = c(5, 1, 2), seasonal = c(0,1,0), xreg = as.matrix(only_exo.train1[,1]), include.drift = FALSE)
+#m_sunbri <- Arima(final_data.train1, order = c(5, 1, 2), seasonal = c(0,1,0), xreg = as.matrix(only_exo.train1[,2]), include.drift = FALSE)
+#m_sunlee <- Arima(final_data.train1, order = c(5, 1, 2), seasonal = c(0,1,0), xreg = as.matrix(only_exo.train1[,3]), include.drift = FALSE)
+
+#f_sunall <- forecast(m_sunall, h=377, xreg = as.matrix(only_exo.valid1))
+#f_sunlon <- forecast(m_sunlon, h=377, xreg = as.matrix(only_exo.valid1[,1]))
+#f_sunbri <- forecast(m_sunbri, h=377, xreg = as.matrix(only_exo.valid1[,2]))
+#f_sunlee <- forecast(m_sunbri, h=377, xreg = as.matrix(only_exo.valid1[,3]))
+
+#accuracy(f_sunall, final_data.valid1)
+#accuracy(f_sunlon, final_data.valid1)
+#accuracy(f_sunbri, final_data.valid1)
+#accuracy(f_sunlee, final_data.valid1)
+
+
+######  AVERAGE TEMPERATURE  #####################################
+data2 <- cbind(demand, average)
+
+final_data2 <- ts(data2[, 2], frequency = 365)
+only_exo2 <- data2[, 3:5]
+
+final_data.train2 <- window(final_data2, end = c(4,60))
+final_data.valid2 <- window(final_data2, start = c(4,61))
+only_exo.train2 <- only_exo2[1 : length(final_data.train2), ]
+only_exo.valid2 <- only_exo2[(length(final_data.train2) + 1) : (length(final_data.train2) + length(final_data.valid2)),]
+
+auto.arima(final_data.train2, xreg = as.matrix(only_exo.train2), seasonal = TRUE, trace = TRUE)
+# Best model:  Regression with ARIMA(5,1,2)
+
+auto.arima(final_data.train2, xreg = as.matrix(only_exo.train2[,1]), seasonal = TRUE, trace = TRUE) #LND
+# Best model:  Regression with ARIMA(5,1,2)
+
+auto.arima(final_data.train2, xreg = as.matrix(only_exo.train2[,2]), seasonal = TRUE, trace = TRUE) #BRI
+# Best model:  Regression with ARIMA(5,1,2)
+
+auto.arima(final_data.train2, xreg = as.matrix(only_exo.train2[,3]), seasonal = TRUE, trace = TRUE) #LEE
+# Best model:  Regression with ARIMA(5,1,2)
+
+m_avgtmpall <- Arima(final_data.train2, order = c(5, 1, 2), xreg = as.matrix(only_exo.train2), include.drift = FALSE)
+m_avgtmplon <- Arima(final_data.train2, order = c(5, 1, 2), xreg = as.matrix(only_exo.train2[,1]), include.drift = FALSE)
+m_avgtmpbri <- Arima(final_data.train2, order = c(5, 1, 2), xreg = as.matrix(only_exo.train2[,2]), include.drift = FALSE)
+m_avgtmplee <- Arima(final_data.train2, order = c(5, 1, 2), xreg = as.matrix(only_exo.train2[,3]), include.drift = FALSE)
+
+f_avgtmpall <- forecast(m_avgtmpall, h=377, xreg = as.matrix(only_exo.valid2))
+f_avgtmplon <- forecast(m_avgtmplon, h=377, xreg = as.matrix(only_exo.valid2[,1]))
+f_avgtmpbri <- forecast(m_avgtmpbri, h=377, xreg = as.matrix(only_exo.valid2[,2]))
+f_avgtmplee <- forecast(m_avgtmplee, h=377, xreg = as.matrix(only_exo.valid2[,3]))
+
+accuracy(f_avgtmpall, final_data.valid2) # RMSE 0.1593
+accuracy(f_avgtmplon, final_data.valid2) # RMSE 0.1641
+accuracy(f_avgtmpbri, final_data.valid2) # RMSE 0.1673
+accuracy(f_avgtmplee, final_data.valid2) # RMSE 0.1702
+# model with all three cities is better
+
+
+###### WEIGHTED TEMPERATURE  #####################################
+data3 <- cbind(demand, weighted)
+
+final_data3 <- ts(data3[, 2], frequency = 365)
+only_exo3 <- data3[, 3:5]
+
+final_data.train3 <- window(final_data3, end = c(4,60))
+final_data.valid3 <- window(final_data3, start = c(4,61))
+only_exo.train3 <- only_exo3[1 : length(final_data.train3), ]
+only_exo.valid3 <- only_exo3[(length(final_data.train3) + 1) : (length(final_data.train3) + length(final_data.valid3)),]
+
+auto.arima(final_data.train3, xreg = as.matrix(only_exo.train3), seasonal = TRUE, trace = TRUE)
+# Best model:  Regression with ARIMA(5,1,2)
+
+auto.arima(final_data.train3, xreg = as.matrix(only_exo.train3[,1]), seasonal = TRUE, trace = TRUE) #LND
+# Best model:  Regression with ARIMA(5,1,2)
+
+auto.arima(final_data.train3, xreg = as.matrix(only_exo.train3[,2]), seasonal = TRUE, trace = TRUE) #BRI
+# Best model:  Regression with ARIMA(5,1,2)
+
+auto.arima(final_data.train3, xreg = as.matrix(only_exo.train3[,3]), seasonal = TRUE, trace = TRUE) #LEE
+# Best model:  Regression with ARIMA(5,1,2)
+
+m_wghtmpall <- Arima(final_data.train3, order = c(5, 1, 2), xreg = as.matrix(only_exo.train3), include.drift = FALSE)
+m_wghtmplon <- Arima(final_data.train3, order = c(5, 1, 2), xreg = as.matrix(only_exo.train3[,1]), include.drift = FALSE)
+m_wghtmpbri <- Arima(final_data.train3, order = c(5, 1, 2), xreg = as.matrix(only_exo.train3[,2]), include.drift = FALSE)
+m_wghtmplee <- Arima(final_data.train3, order = c(5, 1, 2), xreg = as.matrix(only_exo.train3[,3]), include.drift = FALSE)
+
+f_wghtmpall <- forecast(m_wghtmpall, h=377, xreg = as.matrix(only_exo.valid3))
+f_wghtmplon <- forecast(m_wghtmplon, h=377, xreg = as.matrix(only_exo.valid3[,1]))
+f_wghtmpbri <- forecast(m_wghtmpbri, h=377, xreg = as.matrix(only_exo.valid3[,2]))
+f_wghtmplee <- forecast(m_wghtmplee, h=377, xreg = as.matrix(only_exo.valid3[,3]))
+
+accuracy(f_wghtmpall, final_data.valid3) # RMSE 0.1594
+accuracy(f_wghtmplon, final_data.valid3) # RMSE 0.1633
+accuracy(f_wghtmpbri, final_data.valid3) # RMSE 0.1666
+accuracy(f_wghtmplee, final_data.valid3) # RMSE 0.1724
+# model with all three cities is better / but the model with average temp is better than weighted temp
+
+
+###### 6 PM TEMPERATURE ONLY  #####################################
+data4 <- cbind(demand, one_time)
+
+final_data4 <- ts(data4[, 2], frequency = 365)
+only_exo4 <- data4[, 3:5]
+
+final_data.train4 <- window(final_data4, end = c(4,60))
+final_data.valid4 <- window(final_data4, start = c(4,61))
+only_exo.train4 <- only_exo4[1 : length(final_data.train4), ]
+only_exo.valid4 <- only_exo4[(length(final_data.train4) + 1) : (length(final_data.train4) + length(final_data.valid4)),]
+
+auto.arima(final_data.train4, xreg = as.matrix(only_exo.train4), seasonal = TRUE, trace = TRUE)
+# Best model:  Regression with ARIMA(5,1,2)
+
+auto.arima(final_data.train4, xreg = as.matrix(only_exo.train4[,1]), seasonal = TRUE, trace = TRUE) #LND
+# Best model:  Regression with ARIMA(5,1,2)
+
+auto.arima(final_data.train4, xreg = as.matrix(only_exo.train4[,2]), seasonal = TRUE, trace = TRUE) #BRI
+# Best model:  Regression with ARIMA(5,1,2)
+
+auto.arima(final_data.train4, xreg = as.matrix(only_exo.train4[,3]), seasonal = TRUE, trace = TRUE) #LEE
+# Best model:  Regression with ARIMA(5,1,2)
+
+m_onetmpall <- Arima(final_data.train4, order = c(5, 1, 2), xreg = as.matrix(only_exo.train4), include.drift = FALSE)
+m_onetmplon <- Arima(final_data.train4, order = c(5, 1, 2), xreg = as.matrix(only_exo.train4[,1]), include.drift = FALSE)
+m_onetmpbri <- Arima(final_data.train4, order = c(5, 1, 2), xreg = as.matrix(only_exo.train4[,2]), include.drift = FALSE)
+m_onetmplee <- Arima(final_data.train4, order = c(5, 1, 2), xreg = as.matrix(only_exo.train4[,3]), include.drift = FALSE)
+
+f_onetmpall <- forecast(m_onetmpall, h=377, xreg = as.matrix(only_exo.valid4))
+f_onetmplon <- forecast(m_onetmplon, h=377, xreg = as.matrix(only_exo.valid4[,1]))
+f_onetmpbri <- forecast(m_onetmpbri, h=377, xreg = as.matrix(only_exo.valid4[,2]))
+f_onetmplee <- forecast(m_onetmplee, h=377, xreg = as.matrix(only_exo.valid4[,3]))
+
+accuracy(f_onetmpall, final_data.valid4) # RMSE 0.1693
+accuracy(f_onetmplon, final_data.valid4) # RMSE 0.1711
+accuracy(f_onetmpbri, final_data.valid4) # RMSE 0.1777
+accuracy(f_onetmplee, final_data.valid4) # RMSE 0.1892
+# model with all three cities is better / but the model with average temp is still better
+
+
+######  SUNSHINE + AVG TEMPERATURE  #####################################
+data5 <- cbind(demand, sunshine, average)
+
+final_data5 <- ts(data5[, 2], frequency = 365)
+only_exo5 <- data5[, 3:8]
+
+final_data.train5 <- window(final_data5, end = c(4,60))
+final_data.valid5 <- window(final_data5, start = c(4,61))
+only_exo.train5 <- only_exo5[1 : length(final_data.train5), ]
+only_exo.valid5 <- only_exo5[(length(final_data.train5) + 1) : (length(final_data.train5) + length(final_data.valid5)),]
+
+auto.arima(final_data.train5, xreg = as.matrix(only_exo.train5), seasonal = TRUE, trace = TRUE)
+# Best model:  Regression with ARIMA(0,1,0)
+
+# w/o leeds temperature (from lm results)
+auto.arima(final_data.train5, xreg = as.matrix(only_exo.train5[,1:5]), seasonal = TRUE, trace = TRUE)
+# Best model:  Regression with ARIMA(5,1,2)
+
+
+m_fullall <- Arima(final_data.train5, order = c(0, 1, 0), xreg = as.matrix(only_exo.train5), include.drift = FALSE)
+m_full_except_leedtmp <- Arima(final_data.train5, order = c(5, 1, 2), xreg = as.matrix(only_exo.train5[,1:5]), include.drift = FALSE)
+
+f_fullall <- forecast(m_fullall, h=377, xreg = as.matrix(only_exo.valid5))
+f_full_except_leedtmp <- forecast(m_full_except_leedtmp, h=377, xreg = as.matrix(only_exo.train5[,1:5]))
+
+accuracy(f_fullall, final_data.valid4) # RMSE 0.1999
+accuracy(f_full_except_leedtmp, final_data.valid4) # RMSE 0.1771
+
+# model without Leeds temperature is better, but the other models were better
+
+
+# THE TWO BEST MODELS WERE WITH ONLY ALL THREE TEMPERATURES AND ONLY ALL THREE SUNSHINES
+# I'll try to mix all three temperatures with only one sunshine and viceversa
+
+# All temperatures and only London sun
+auto.arima(final_data.train5, xreg = as.matrix(only_exo.train5[,c(1,4,5,6)]), seasonal = TRUE, trace = TRUE)
+# Best model:  Regression with ARIMA(4,1,0)
+
+m_alltmp_lonsun <- Arima(final_data.train5, order = c(4, 1, 0), xreg = as.matrix(only_exo.train5[,c(1,4,5,6)]), include.drift = FALSE)
+f_alltmp_lonsun <- forecast(m_alltmp_lonsun, h=377, xreg = as.matrix(only_exo.train5[,c(1,4,5,6)]))
+accuracy(f_alltmp_lonsun, final_data.valid5) # RMSE 0.1835
+
+
+# All temperatures and only Bristol sun
+auto.arima(final_data.train5, xreg = as.matrix(only_exo.train5[,c(2,4,5,6)]), seasonal = TRUE, trace = TRUE)
+# Best model:  Regression with ARIMA(4,1,0)
+
+m_alltmp_brisun <- Arima(final_data.train5, order = c(4, 1, 0), xreg = as.matrix(only_exo.train5[,c(2,4,5,6)]), include.drift = FALSE)
+f_alltmp_brisun <- forecast(m_alltmp_brisun, h=377, xreg = as.matrix(only_exo.train5[,c(2,4,5,6)]))
+accuracy(f_alltmp_brisun, final_data.valid5) # RMSE 0.1792
+
+
+# All temperatures and only Leeds sun
+auto.arima(final_data.train5, xreg = as.matrix(only_exo.train5[,c(3,4,5,6)]), seasonal = TRUE, trace = TRUE)
+# Best model:  Regression with ARIMA(4,1,0)
+
+m_alltmp_leesun <- Arima(final_data.train5, order = c(4, 1, 0), xreg = as.matrix(only_exo.train5[,c(3,4,5,6)]), include.drift = FALSE)
+f_alltmp_leesun <- forecast(m_alltmp_leesun, h=377, xreg = as.matrix(only_exo.train5[,c(3,4,5,6)]))
+accuracy(f_alltmp_leesun, final_data.valid5) # RMSE 0.1834
+
+
+# All sunshines and only London temp
+auto.arima(final_data.train5, xreg = as.matrix(only_exo.train5[,c(1,2,3,4)]), seasonal = TRUE, trace = TRUE)
+# Best model:  Regression with ARIMA(5,1,2)
+
+m_allsun_lontmp <- Arima(final_data.train5, order = c(5, 1, 2), xreg = as.matrix(only_exo.train5[,c(1,2,3,4)]), include.drift = FALSE)
+f_allsun_lontmp <- forecast(m_allsun_lontmp, h=377, xreg = as.matrix(only_exo.train5[c(1,2,3,4)]))
+accuracy(f_allsun_lontmp, final_data.valid5) # RMSE 0.1785
+
+
+# All sunshines and only Bristol temp
+auto.arima(final_data.train5, xreg = as.matrix(only_exo.train5[,c(1,2,3,5)]), seasonal = TRUE, trace = TRUE)
+# Best model:  Regression with ARIMA(5,1,2)
+
+m_allsun_britmp <- Arima(final_data.train5, order = c(5, 1, 2), xreg = as.matrix(only_exo.train5[,c(1,2,3,5)]), include.drift = FALSE)
+f_allsun_britmp <- forecast(m_allsun_britmp, h=377, xreg = as.matrix(only_exo.train5[c(1,2,3,5)]))
+accuracy(f_allsun_britmp, final_data.valid5) # RMSE 0.1804
+
+
+# All sunshines and only Leeds temp
+auto.arima(final_data.train5, xreg = as.matrix(only_exo.train5[,c(1,2,3,6)]), seasonal = TRUE, trace = TRUE)
+# Best model:  Regression with ARIMA(5,1,2)
+
+m_allsun_leetmp <- Arima(final_data.train5, order = c(5, 1, 2), xreg = as.matrix(only_exo.train5[,c(1,2,3,6)]), include.drift = FALSE)
+f_allsun_leetmp <- forecast(m_allsun_leetmp, h=377, xreg = as.matrix(only_exo.train5[c(1,2,3,6)]))
+accuracy(f_allsun_leetmp, final_data.valid5) # RMSE 0.1818
+
+
+############## Without regression
+auto.arima(final_data.train1, seasonal = TRUE, trace = TRUE)
+# Best model:  Regression with ARIMA(5,1,2)(0,1,0)[365]
+
+m <- Arima(final_data.train1, order = c(5, 1, 2), seasonal = c(0,1,0), include.drift = FALSE)
+f <- forecast(m, h=377)
+accuracy(f, final_data.valid1) # RMSE 0.1446
+
+
+
+
+
+
+######## COMBINING THE (5,1,2)(0,1,0)[365] WITH TEMPERATURE VARIABLES
+modelochido2 <- Arima(final_data.train5, order = c(5, 1, 2), seasonal = c(0,1,0), xreg = as.matrix(only_exo.train5[,c(4,5,6)]), include.drift = FALSE)
+f2 <- forecast(modelochido2, h=377, xreg = as.matrix(only_exo.valid5[,c(4,5,6)]))
+accuracy(f2, final_data.valid5) # RMSE 0.1295
+
+# Using all 6 variables, except Leeds temperature because in lm it was stated as irrelevant
+modelochido3 <- Arima(final_data.train5, order = c(5, 1, 2), seasonal = c(0,1,0), xreg = as.matrix(only_exo.train5[,c(1,2,3,4,5)]), include.drift = FALSE)
+f3 <- forecast(modelochido3, h=377, xreg = as.matrix(only_exo.valid5[,c(1,2,3,4,5)]))
+accuracy(f3, final_data.valid5) # RMSE 0.1225
+
+# Running only the sunshines
+modelochido4 <- Arima(final_data.train5, order = c(5, 1, 2), seasonal = c(0,1,0), xreg = as.matrix(only_exo.train5[,c(1,2,3)]), include.drift = FALSE)
+f4 <- forecast(modelochido4, h=377, xreg = as.matrix(only_exo.valid5[,c(1,2,3)]))
+accuracy(f4, final_data.valid5) # RMSE 0.1295
+
+
+# Picking the best variable selection, but with the ARIMA calculated from forecast 2
+modelochido5 <- Arima(final_data.train5, order = c(1, 1, 3), season = c(0, 1, 0), xreg = as.matrix(only_exo.train5[,c(1,2,3,4,5)]), include.drift = FALSE)
+f5 <- forecast(modelochido5, h=377, xreg = as.matrix(only_exo.valid5[,c(1,2,3,4,5)]))
+accuracy(f5, final_data.valid5) # RMSE 0.1055
+
+# To the previous model, adding Leeds temperature
+modelochido6 <- Arima(final_data.train5, order = c(1, 1, 3), season = c(0, 1, 0), xreg = as.matrix(only_exo.train5[,c(1,2,3,4,5,6)]), include.drift = FALSE)
+f6 <- forecast(modelochido6, h=377, xreg = as.matrix(only_exo.valid5[,c(1,2,3,4,5,6)]))
+accuracy(f6, final_data.valid5) # RMSE 0.1053
