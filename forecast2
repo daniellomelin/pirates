@@ -1,0 +1,78 @@
+library(stargazer)
+library("readxl")
+library(dplyr)
+library(tibble)
+library(ggplot2)
+library(lubridate)
+library(tseries)
+library(forecast)
+
+# Historical consumption only
+energy1.consumption <- read_excel("Forecasting Competition - Data2.xlsx", sheet = "Demand")
+
+plot(energy1.consumption, type = "l")
+
+colnames(energy1.consumption)[1] <- "date"
+colnames(energy1.consumption)[2] <- "energy"
+
+energy1.consumption["energy"] <- log(energy1.consumption["energy"])
+
+energy.ts <- ts(energy1.consumption[, 2], frequency = 365)
+
+energy.ts[,1] %>% stl(s.window = "periodic") %>% plot
+
+ndiffs(energy.ts)
+nsdiffs(energy.ts)
+
+auto.arima(energy.ts, d = 1, D = 1)
+model <- Arima(energy.ts, order = c(5, 1, 2), season = c(0, 1, 0), include.drift = FALSE)
+forecast <- forecast(model, level = 95, h = 2)
+autoplot(forecast)
+
+mean <- forecast[["mean"]][2]
+sd <- (forecast[["mean"]][2] - forecast[["lower"]][2]) / 2
+
+mean
+sd
+
+################ Auto.arima() results ################
+#Series: energy.ts 
+#ARIMA(5,1,2)(0,1,0)[365] 
+
+#Coefficients:
+#  ar1      ar2      ar3      ar4      ar5      ma1     ma2
+#0.1086  -0.7553  -0.2241  -0.3396  -0.5136  -0.5383  0.5204
+#s.e.  0.0474   0.0280   0.0378   0.0260   0.0312   0.0583  0.0316
+
+#sigma^2 = 0.004992:  log likelihood = 1420.39
+#AIC=-2824.78   AICc=-2824.66   BIC=-2784.37
+####################################################
+
+
+
+### Temperature
+energy1.real_weather <- read_excel("Forecasting Competition - Data.xlsx", sheet = "Temperature")
+
+# remove forecasting columns
+energy1.real_weather <- energy1.real_weather[c(-5,-6,-7)]
+
+# remove first row
+energy1.real_weather <- energy1.real_weather[-1,]
+
+# rename column names
+colnames(energy1.real_weather)[1] <- "date"
+colnames(energy1.real_weather)[2] <- "London"
+colnames(energy1.real_weather)[3] <- "Bristol"
+colnames(energy1.real_weather)[4] <- "Leeds"
+
+real_weather <- data.frame(matrix(ncol = 3, nrow = 0))
+colnames(real_weather) <- c("London", "Bristol", "Leeds")
+
+# taking temperature of every day at 18:00 because it's peak
+for (i in seq(1, nrow(energy1.real_weather))) {
+  if ((i + 1) %% 4 == 0) {
+    real_weather[nrow(real_weather) + 1,] = c(energy1.real_weather[i,2], 
+                                              energy1.real_weather[i,3], 
+                                              energy1.real_weather[i,4])
+  }
+}
