@@ -1,0 +1,89 @@
+# This code was not used to predict, but it nevertheless shows a beta of what will be used in future stages.
+# Xreg takes other variables as input. Xreg is inputted 
+
+library(stargazer)
+library("readxl")
+library(dplyr)
+library(tibble)
+library(ggplot2)
+library(lubridate)
+library(tseries)
+library(forecast)
+
+# Adjust and take only n rows in the data
+sunshine <- sunshine[1:1532,]
+demand <- demand[1:1532,]
+average <- average[1:1532,]
+weighted <- weighted[1:1532,]
+one_time <- one_time[1:1532,]
+
+data <- cbind(demand, average, sunshine)
+
+# Convert the data to a ts object with the "demand" column as the time series
+final_data <- ts(data[, 2], frequency = 365)
+only_exo <- data[, 3:8]
+
+final_data.train <- window(final_data, end = c(4,60))
+final_data.valid <- window(final_data, start = c(4,61))
+only_exo.train <- only_exo[1 : length(final_data.train), ]
+only_exo.valid <- only_exo[(length(final_data.train) + 1) : (length(final_data.train) + length(final_data.valid)),]
+
+# Perform auto arima
+auto.arima(final_data.train, xreg = as.matrix(only_exo.train), seasonal = TRUE, trace = TRUE)
+
+############################
+# Best model:  Regression with ARIMA(0,1,0)
+
+# Playing with diferent order arimas:
+m1 <- Arima(final_data.train, order = c(6, 1, 0), xreg = as.matrix(only_exo.train), include.drift = FALSE)
+m2 <- Arima(final_data.train, order = c(0, 1, 0), xreg = as.matrix(only_exo.train), include.drift = FALSE)
+m3 <- Arima(final_data.train, order = c(5, 1, 2), xreg = as.matrix(only_exo.train), include.drift = FALSE)
+m4 <- Arima(final_data.train, order = c(5, 1, 1), xreg = as.matrix(only_exo.train), include.drift = FALSE)
+m5 <- Arima(final_data.train, order = c(1, 1, 3), seasonal = c(0,1,0), xreg = as.matrix(only_exo.train), include.drift = FALSE)
+
+f1 <- forecast(m1, h=365, xreg = as.matrix(only_exo.valid))
+f2 <- forecast(m2, h=365, xreg = as.matrix(only_exo.valid))
+f3 <- forecast(m3, h=365, xreg = as.matrix(only_exo.valid))
+f4 <- forecast(m4, h=365, xreg = as.matrix(only_exo.valid))
+f5 <- forecast(m5, h=365, xreg = as.matrix(only_exo.valid))
+
+accuracy(f1, final_data.valid)
+accuracy(f2, final_data.valid)
+accuracy(f3, final_data.valid)
+accuracy(f4, final_data.valid)
+accuracy(f5, final_data.valid)
+
+model <- Arima(final_data, order = c(6, 1, 0), xreg = as.matrix(only_exo), include.drift = FALSE)
+
+# Manually fill the forecasts for temperatures and sunshines. The order is:
+# c(temp London today, temp London tomorrow, temp Bristol today,..., sunshine Leeds today, sunshine Leeds tom)
+forecast <- forecast(model, h = 2, level = 95,
+                     xreg = matrix(c(10.625, 4.875, 10.25, 4.25, 8.75, 1.5, 60, 60, 60, 180, 0, 240), nrow = 2))
+
+forecast
+
+#### EXTRA TESTS
+# I forecasted the next 7 days, to make sure the days the weekends are forecasted lower
+forecast2 <- forecast(model, h = 7, xreg = matrix(c(10.625, 4.875, 10, 10, 10, 10, 10, #Lnd temp
+                                                    10.25, 4.25, 10, 10, 10, 10, 10, #Bri temp
+                                                    8.75, 1.5, 10, 10, 10, 10, 10, #Lee temp
+                                                    60, 60, 60, 60, 60, 60, 60, #Lnd sun
+                                                    60, 80, 60, 60, 60, 60, 60, #Bri sun
+                                                    0, 240, 60, 60, 60, 60, 60), #Lee sun
+                                                  nrow = 7))
+
+# They are!
+forecast2
+
+
+# I changed the temperature and sunshine in all cities to 0 to see if consumption increased
+forecast3 <- forecast(model, h = 7, xreg = matrix(c(10.625, 4.875, 10, 10, 10, 0, 10, #Lnd temp
+                                                    10.25, 4.25, 10, 10, 10, 0, 10, #Bri temp
+                                                    8.75, 1.5, 10, 10, 10, 0, 10, #Lee temp
+                                                    60, 60, 60, 60, 60, 0, 60, #Lnd sun
+                                                    60, 80, 60, 60, 60, 0, 60, #Bri sun
+                                                    0, 240, 60, 60, 60, 0, 60), #Lee sun
+                                                  nrow = 7))
+
+# It did!
+forecast3
