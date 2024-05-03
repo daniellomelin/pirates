@@ -1,0 +1,107 @@
+library(stargazer)
+library("readxl")
+library(dplyr)
+library(tibble)
+library(ggplot2)
+library(lubridate)
+library(tseries)
+library(forecast)
+
+setwd("/Users/daniellomelin/Desktop/Imperial College/Clases/Term 2/Energy Analytics/Forecasting competition/Forecast 4")
+
+########################  
+### Process:
+# 1. Check if for sunshine and each temperature type, all cities are relevant
+# 2. Compare which of the temperature types is more relevant
+# 3. For that temperature type, check if all cities are jointly relevant, with the sunshine
+# 4. The chosen variables will be included in the next arima models
+########################  
+
+######  SUNSHINE  #####################################
+data1 <- cbind(demand, sunshine)
+
+sun_model <- lm(demand ~ london_sun + bristol_sun + leeds_sun, data = data1)
+sun_null <- lm(demand ~ 1, data = data1)
+
+summary(sun_model)
+
+step(sun_null, scope = list(lower = sun_null, upper = sun_model), direction = "forward")
+# all three cities are relevant
+
+######  TEMPERATURE  #####################################
+
+data2 <- cbind(demand, average)
+
+avgtmp_model <- lm(demand ~ london_avgtmp + bristol_avgtmp + leeds_avgtmp, data = data2)
+avgtmp_null <- lm(demand ~ 1, data = data2)
+
+summary(avgtmp_model)
+
+step(avgtmp_null, scope = list(lower = avgtmp_null, upper = avgtmp_model), direction = "both")
+# all three cities are relevant
+
+
+###### WEIGHTED TEMPERATURE  #####################################
+data4 <- cbind(demand, weighted)
+
+wghtmp_model <- lm(demand ~ london_wghtmp + bristol_wghtmp + leeds_wghtmp, data = data4)
+wghtmp_null <- lm(demand ~ 1, data = data4)
+
+summary(wghtmp_model)
+
+step(wghtmp_null, scope = list(lower = wghtmp_null, upper = wghtmp_model), direction = "both")
+# all three cities are relevant
+
+
+###### 6 PM TEMPERATURE ONLY  #####################################
+data5 <- cbind(demand, one_time)
+onetmp_model <- lm(demand ~ london_onetemp + bristol_onetemp + leeds_onetemp, data = data5)
+onetmp_null <- lm(demand ~ 1, data = data5)
+
+step(onetmp_null, scope = list(lower = onetmp_null, upper = onetmp_model), direction = "both") # exlude leeds
+
+onetmp_model_wo_leeds <- lm(demand ~ london_onetemp + bristol_onetemp, data = data5)
+
+summary(onetmp_model_wo_leeds)
+
+# Comparing all three temperature options, the average seems to be better, as it has a better adjusted 
+# R value and F stat.
+summary(avgtmp_model)
+summary(wghtmp_model)
+summary(onetmp_model_wo_leeds)
+
+
+######  SUNSHINE + 6 pm TEMPERATURE  #####################################
+data3 <- cbind(demand, one_time, sunshine)
+
+full_model <- lm(demand ~ london_onetemp + bristol_onetemp + leeds_onetemp + london_sun + bristol_sun + leeds_sun, data = data3)
+full_null <- lm(demand ~ 1, data = data3)
+
+modelo <- step(full_null, scope = list(lower = full_null, upper = full_model), direction = "both")
+
+summary(modelo)
+# exclude leeds temperature and london sunshine when including all sunshines and one time temperatures
+
+
+######  SUNSHINE + AVERAGE TEMPERATURE  #####################################
+data4 <- cbind(demand, average, sunshine)
+
+full_model <- lm(demand ~ london_avgtmp + bristol_avgtmp + leeds_avgtmp + london_sun + bristol_sun + leeds_sun, data = data4)
+full_null <- lm(demand ~ 1, data = data4)
+
+modelo <- step(full_null, scope = list(lower = full_null, upper = full_model), direction = "both")
+
+summary(modelo)
+# exclude avg leeds temperature when including all sunshines and average temperatures
+
+
+######  SUNSHINE + WEIGHTED TEMPERATURE  #####################################
+data5 <- cbind(demand, weighted, sunshine)
+
+full_model <- lm(demand ~ london_wghtmp + bristol_wghtmp + leeds_wghtmp + london_sun + bristol_sun + leeds_sun, data = data5)
+full_null <- lm(demand ~ 1, data = data5)
+
+modelo <- step(full_null, scope = list(lower = full_null, upper = full_model), direction = "both")
+
+summary(modelo)
+# exclude avg leeds temperature when including all sunshines and average temperatures
